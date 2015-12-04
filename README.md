@@ -21,7 +21,7 @@ A small lua lib, that performs char (ASCII char from 0 to 127) to value replacem
 
 	local t = {
 		['&'] = '&amp;',
-		['<'] = '&lt;',D
+		['<'] = '&lt;',
 		['>'] = '&gt;'
 	}
 
@@ -42,8 +42,8 @@ A small lua lib, that performs char (ASCII char from 0 to 127) to value replacem
 <h3>Downloading:</h3>
 
 ```bash
-git clone https://github.com/Darvame/teateatea.git
-cd teateatea
+git clone https://github.com/Darvame/odielak.git
+cd odielak
 ```
 
 <h3>Setting Variables:</h3>

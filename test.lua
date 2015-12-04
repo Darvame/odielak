@@ -25,7 +25,7 @@ local sanityr = '[&<>"\'/A]';
 
 local gstr = string.gsub(str, sanityr, sanityt);
 
-if (lstr ~= gstr ~= mstr) then
+if (lstr ~= gstr or mstr ~= gstr) then
 	print("Lstr: >>" .. lstr .. "<<");
 	print("Mstr: >>" .. mstr .. "<<");
 	print("Gstr: >>" .. gstr .. "<<");

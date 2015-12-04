@@ -12,7 +12,7 @@ struct lak_string {
 	size_t len;
 };
 
-struct lak_main {
+struct lak_header {
 	struct lak_string *repls;
 	unsigned char dict[LAK_DICT_SIZE];
 };
@@ -43,8 +43,8 @@ static int replace(lua_State *l)
 		default: return 0;
 	}
 
-	struct lak_main *main = lua_touserdata(l, 1);
-	struct lak_string *rep = main->repls;
+	struct lak_header *header = lua_touserdata(l, 1);
+	struct lak_string *rep = header->repls;
 
 	if (!rep) {
 		lua_pushvalue(l, 2);
@@ -55,7 +55,7 @@ static int replace(lua_State *l)
 	size_t len;
 
 	const unsigned char *str = (const unsigned char *) lua_tolstring(l, 2, &len);
-	const unsigned char *dict = main->dict;
+	const unsigned char *dict = header->dict;
 
 	size_t matched = 0;
 	size_t oversize = 0;
@@ -162,22 +162,22 @@ static int make_new(lua_State *l)
 		}
 	}
 
-	struct lak_main *main;
+	struct lak_header *header;
 	struct lak_string *rep;
 	char *value;
 
 	if (!used) {
-		main = (struct lak_main *)(lua_newuserdata(l, sizeof(struct lak_string *)));
-		main->repls = NULL;
+		header = (struct lak_header *)(lua_newuserdata(l, sizeof(struct lak_string *)));
+		header->repls = NULL;
 		return make_set_meta(l);
 	}
 
-	main =  (struct lak_main *)(lua_newuserdata(l, sizeof(struct lak_main) + used * sizeof(struct lak_string) + size));
-	rep = (struct lak_string *)(main + 1);
+	header =  (struct lak_header *)(lua_newuserdata(l, sizeof(struct lak_header) + used * sizeof(struct lak_string) + size));
+	rep = (struct lak_string *)(header + 1);
 	value = (char *)(rep + used);
 
-	memcpy(main->dict, dict, LAK_DICT_SIZE * sizeof(char));
-	main->repls = rep;
+	memcpy(header->dict, dict, LAK_DICT_SIZE * sizeof(char));
+	header->repls = rep;
 
 	for (i = 0; i < used; ++i) {
 		lnk = repty[i].len;

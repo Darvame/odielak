@@ -61,7 +61,7 @@ static int replace(lua_State *l)
 	size_t oversize = 0;
 
 	for (i = 0; i < len; ++i) {
-		if (dict[str[i]]) {
+		if (str[i] < LAK_DICT_SIZE && dict[str[i]]) {
 			oversize+= rep[dict[str[i]] - 1].len;
 			++matched;
 		}

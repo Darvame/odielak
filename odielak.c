@@ -85,7 +85,7 @@ static int replace(lua_State *l)
 	char *push = new;
 
 	for (i = 0; i < len; ++i) {
-		if (dict[str[i]]) {
+		if (str[i] < LAK_DICT_SIZE && dict[str[i]]) {
 			repstr = &rep[dict[str[i]] - 1];
 			memcpy(new, repstr->str, repstr->len * sizeof(char));
 			new+= repstr->len;

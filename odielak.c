@@ -6,6 +6,7 @@
 #include "string.h"
 
 #define LAK_DICT_SIZE 128
+#define LAK_BUF_STACK_SIZE 1024
 
 struct lak_string {
 	const char *str;
@@ -74,12 +75,19 @@ static int replace(lua_State *l)
 
 	oversize+= len - matched;
 
+	char sbuf[LAK_BUF_STACK_SIZE];
 	struct lak_string *repstr;
-	char *new = malloc(oversize);
+	char *new;
 
-	if (!new) {
-		lua_pushstring(l, "bad malloc();");
-		lua_error(l);
+	if (oversize > LAK_BUF_STACK_SIZE) {
+		new = (char *) malloc(oversize);
+
+		if (!new) {
+			lua_pushstring(l, "bad malloc();");
+			lua_error(l);
+		}
+	} else {
+		new = sbuf;
 	}
 
 	char *push = new;
@@ -96,7 +104,9 @@ static int replace(lua_State *l)
 
 	lua_pushlstring(l, push, oversize);
 
-	free(push);
+	if (oversize > LAK_BUF_STACK_SIZE) {
+		free(push);
+	}
 
 	return 1;
 }

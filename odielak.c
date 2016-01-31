@@ -6,7 +6,7 @@
 #include "string.h"
 
 #define LAK_DICT_SIZE 128
-#define LAK_BUF_STACK_SIZE 1024
+#define LAK_BUF_STACK_SIZE 2048
 
 struct lak_string {
 	const char *str;
@@ -18,7 +18,7 @@ struct lak_header {
 	unsigned char dict[LAK_DICT_SIZE];
 };
 
-static int replace_ut__tostring(lua_State *l, int obj)
+static int replace_ut_tostring(lua_State *l, int obj)
 {
 	if (luaL_callmeta(l, obj, "__tostring")) {
 		if (lua_isstring(l, -1)) {
@@ -38,7 +38,7 @@ static int replace(lua_State *l)
 
 	switch (lua_type(l, 2)) {
 		case LUA_TTABLE:
-		case LUA_TUSERDATA: if (!replace_ut__tostring(l, 1 - lua_gettop(l))) return 0;
+		case LUA_TUSERDATA: if (!replace_ut_tostring(l, 1 - lua_gettop(l))) return 0;
 		case LUA_TSTRING:
 		case LUA_TNUMBER: break;
 		default: return 0;

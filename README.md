@@ -49,10 +49,12 @@ cd odielak
 <h3>Setting Variables:</h3>
 
 ```bash
-#by default sudo does not pass variables
+#by default sudo does not pass exported variables
 #you may need to run everything bellow (from this point) with root
 #in order to use '$ make install'
 su -
+#or call make with specified variables
+make CC=clang
 ```
 - <b>with pgk-config</b>
 ```bash

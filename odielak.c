@@ -69,7 +69,12 @@ static int replace(lua_State *l)
 	}
 
 	if (!matched) {
-		lua_pushvalue(l, 2);
+		i = lua_gettop(l);
+
+		if (i > 2) {
+			lua_pop(l, i - 2);
+		}
+
 		return 1;
 	}
 

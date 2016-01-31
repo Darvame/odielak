@@ -32,5 +32,6 @@ if (lstr ~= gstr or mstr ~= gstr) then
 	error("NOT MATCHED!");
 end
 
+assert(sanity_it("  ") == "  ");
 assert(sanity_it(nil) == nil);
 assert(sanity_it(true) == nil);

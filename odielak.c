@@ -30,18 +30,29 @@ static int replace_ut_tostring(lua_State *l, int obj)
 	return 0;
 }
 
+static int nil_value(lua_State *l)
+{
+	lua_pushnil(l);
+	return 1;
+}
+
 static int replace(lua_State *l)
 {
+	if (lua_gettop(l) > 2) {
+		lua_pop(l, lua_gettop(l) - 2);
+	}
+
 	if (!lua_isuserdata(l, 1)) {
+		luaL_typerror(l, 1, "userdata (odielak's dictionary)");
 		return 0;
 	}
 
 	switch (lua_type(l, 2)) {
 		case LUA_TTABLE:
-		case LUA_TUSERDATA: if (!replace_ut_tostring(l, 1 - lua_gettop(l))) return 0;
+		case LUA_TUSERDATA: if (!replace_ut_tostring(l, 1 - lua_gettop(l))) return nil_value(l);
 		case LUA_TSTRING:
 		case LUA_TNUMBER: break;
-		default: return 0;
+		default: return nil_value(l);
 	}
 
 	struct lak_header *header = lua_touserdata(l, 1);
@@ -69,12 +80,6 @@ static int replace(lua_State *l)
 	}
 
 	if (!matched) {
-		i = lua_gettop(l);
-
-		if (i > 2) {
-			lua_pop(l, i - 2);
-		}
-
 		return 1;
 	}
 
@@ -88,8 +93,7 @@ static int replace(lua_State *l)
 		new = (char *) malloc(oversize);
 
 		if (!new) {
-			lua_pushstring(l, "bad malloc();");
-			lua_error(l);
+			luaL_error(l, "bad malloc()");
 		}
 	} else {
 		new = sbuf;
@@ -131,8 +135,7 @@ static int make_set_meta(lua_State *l)
 	}
 
 	if (error) {
-		lua_pushstring(l, "failed to setmetatable();");
-		lua_error(l);
+		luaL_error(l, "unable to setmetatable()");
 	}
 
 	return 1;

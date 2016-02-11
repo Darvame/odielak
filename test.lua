@@ -33,5 +33,6 @@ if (lstr ~= gstr or mstr ~= gstr) then
 end
 
 assert(sanity_it("  ") == "  ");
+assert(sanity_it(1) == "1");
 assert(sanity_it(nil) == nil);
 assert(sanity_it(true) == nil);

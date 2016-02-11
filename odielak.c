@@ -8,16 +8,6 @@
 #define LAK_DICT_SIZE 128
 #define LAK_BUF_STACK_SIZE 2048
 
-struct lak_string {
-	const char *str;
-	size_t len;
-};
-
-struct lak_header {
-	struct lak_string *repls;
-	unsigned char dict[LAK_DICT_SIZE];
-};
-
 static int replace_ut_tostring(lua_State *l, int obj)
 {
 	if (luaL_callmeta(l, obj, "__tostring")) {
@@ -36,64 +26,99 @@ static int nil_value(lua_State *l)
 	return 1;
 }
 
+static int error_no_dict(lua_State *l)
+{
+	luaL_typerror(l, 1, "table (odielak's dictionary)");
+	return 0;
+}
+
+static int error_meta_set(lua_State *l)
+{
+	luaL_error(l, "unable to setmetatable()");
+	return 0;
+}
+
+static int error_bad_malloc(lua_State *l)
+{
+	luaL_error(l, "bad malloc()");
+	return 0;
+}
+
+static int error_no_str_in_dict(lua_State *l, const unsigned char c)
+{
+	luaL_error(l, "odielak's dictionary is malformed! Missing value for %u!", c);
+	return 0;
+}
+
 static int replace(lua_State *l)
 {
 	if (lua_gettop(l) > 2) {
 		lua_pop(l, lua_gettop(l) - 2);
 	}
 
-	if (!lua_isuserdata(l, 1)) {
-		luaL_typerror(l, 1, "userdata (odielak's dictionary)");
-		return 0;
+	if (!lua_istable(l, 1)) {
+		return error_no_dict(l);
 	}
 
 	switch (lua_type(l, 2)) {
 		case LUA_TTABLE:
-		case LUA_TUSERDATA: if (!replace_ut_tostring(l, 1 - lua_gettop(l))) return nil_value(l);
+		case LUA_TUSERDATA: if (!replace_ut_tostring(l, -1)) return nil_value(l);
 		case LUA_TSTRING:
 		case LUA_TNUMBER: break;
 		default: return nil_value(l);
 	}
 
-	struct lak_header *header = lua_touserdata(l, 1);
-	struct lak_string *rep = header->repls;
+	lua_rawgeti(l, 1, -1);
+	const char *dict = (const char *) lua_touserdata(l, 3);
 
-	if (!rep) {
-		lua_pushvalue(l, 2);
+	size_t len;
+	const unsigned char *str = (const unsigned char *) lua_tolstring(l, 2, &len);
+
+	if (!dict) {
+		lua_pop(l, 1); // remove last value (userdata-dict)
 		return 1;
 	}
 
+	char str_inited[LAK_DICT_SIZE] = {};
+	const char *str_rep[LAK_DICT_SIZE];
+	size_t str_rep_len[LAK_DICT_SIZE];
+
 	size_t i;
-	size_t len;
-
-	const unsigned char *str = (const unsigned char *) lua_tolstring(l, 2, &len);
-	const unsigned char *dict = header->dict;
-
 	size_t matched = 0;
 	size_t oversize = 0;
 
 	for (i = 0; i < len; ++i) {
 		if (str[i] < LAK_DICT_SIZE && dict[str[i]]) {
-			oversize+= rep[dict[str[i]] - 1].len;
+			if (!str_inited[str[i]]) {
+				lua_rawgeti(l, 1, str[i]);
+
+				str_rep[str[i]] = lua_tolstring(l, -1, &str_rep_len[str[i]]);
+
+				if (!str_rep[str[i]]) {
+					return error_no_str_in_dict(l, str[i]);
+				}
+			}
+
+			oversize+= str_rep_len[str[i]];
 			++matched;
 		}
 	}
 
 	if (!matched) {
+		lua_pop(l, 1); // remove last value (userdata-dict)
 		return 1;
 	}
 
 	oversize+= len - matched;
 
 	char sbuf[LAK_BUF_STACK_SIZE];
-	struct lak_string *repstr;
 	char *new;
 
 	if (oversize > LAK_BUF_STACK_SIZE) {
 		new = (char *) malloc(oversize);
 
 		if (!new) {
-			luaL_error(l, "bad malloc()");
+			return error_bad_malloc(l);
 		}
 	} else {
 		new = sbuf;
@@ -103,9 +128,8 @@ static int replace(lua_State *l)
 
 	for (i = 0; i < len; ++i) {
 		if (str[i] < LAK_DICT_SIZE && dict[str[i]]) {
-			repstr = &rep[dict[str[i]] - 1];
-			memcpy(new, repstr->str, repstr->len * sizeof(char));
-			new+= repstr->len;
+			memcpy(new, str_rep[str[i]], str_rep_len[str[i]] * sizeof(char));
+			new+= str_rep_len[str[i]];
 		} else {
 			*(new++) = str[i];
 		}
@@ -120,94 +144,75 @@ static int replace(lua_State *l)
 	return 1;
 }
 
-static int make_set_meta(lua_State *l)
-{
-	int error = 1;
-
-	if (lua_istable(l, 1)) {
-		lua_getfield(l, 1, "_meta");
-
-		if (lua_istable(l, -1)) {
-			lua_setmetatable(l, -2);
-		}
-
-		error = 0;
-	}
-
-	if (error) {
-		luaL_error(l, "unable to setmetatable()");
-	}
-
-	return 1;
-}
-
 static int make_new(lua_State *l)
 {
-	struct lak_string repty[LAK_DICT_SIZE];
-	unsigned char dict[LAK_DICT_SIZE] = {};
+	if (lua_gettop(l) > 2) {
+		lua_pop(l, lua_gettop(l) - 2);
+	}
 
-	size_t i;
-	size_t lnk;
-	size_t used = 0;
-	size_t size = 0;
+	char dict[LAK_DICT_SIZE] = {};
+	char has_any_value = 0;
 
 	const unsigned char *key;
+	long long int keyi;
+	size_t lnk;
+
+	lua_newtable(l);
 
 	if (lua_istable(l, 2)) {
 		lua_pushnil(l);
 
 		while(lua_next(l, 2)) {
-			lua_pushvalue(l, -2);
 
-			key = (const unsigned char *) lua_tolstring(l, -1, &lnk);
+			if (lua_isnumber(l, -2)) {
+				keyi = lua_tonumber(l, -2);
 
-			if (!lnk || lnk > 1 || key[0] > LAK_DICT_SIZE) {
-				lua_pop(l, 2);
+				if (keyi > LAK_DICT_SIZE || keyi < 0) {
+					lua_pop(l, 1);
+					continue;
+				}
+
+			} else {
+				key = (const unsigned char *) lua_tolstring(l, -2, &lnk);
+
+				if (lnk != 1 || key[0] > LAK_DICT_SIZE) {
+					lua_pop(l, 1);
+					continue;
+				}
+
+				keyi = key[0];
+			}
+
+			if (!lua_tostring(l, -1)) {
+				lua_pop(l, 1);
 				continue;
 			}
 
-			if (!dict[key[0]]) {
-				lnk = used++;
-				dict[key[0]] = lnk + 1;
-			} else {
-				lnk = dict[key[0]];
-			}
-
-			repty[lnk].str = lua_tolstring(l, -2, &(repty[lnk].len));
-			size+= (repty[lnk].len);
-
-			lua_pop(l, 2);
+			lua_rawseti(l, 3, keyi);
+			has_any_value = 1;
+			dict[keyi] = 1;
 		}
 	}
 
-	struct lak_header *header;
-	struct lak_string *rep;
-	char *value;
-
-	if (!used) {
-		header = (struct lak_header *)(lua_newuserdata(l, sizeof(struct lak_string *)));
-		header->repls = NULL;
-		return make_set_meta(l);
+	if (has_any_value) {
+		unsigned char *udict = lua_newuserdata(l, sizeof(dict));
+		memcpy(udict, dict, sizeof(dict));
+		lua_rawseti(l, 3, -1);
 	}
 
-	header =  (struct lak_header *)(lua_newuserdata(l, sizeof(struct lak_header) + used * sizeof(struct lak_string) + size));
-	rep = (struct lak_string *)(header + 1);
-	value = (char *)(rep + used);
-
-	memcpy(header->dict, dict, LAK_DICT_SIZE * sizeof(char));
-	header->repls = rep;
-
-	for (i = 0; i < used; ++i) {
-		lnk = repty[i].len;
-
-		rep[i].len = lnk;
-		rep[i].str = value;
-
-		memcpy(value, repty[i].str, lnk * sizeof(char));
-		value+= lnk;
+	if (!lua_istable(l, 1)) {
+		return error_meta_set(l);
 	}
 
-	return make_set_meta(l);
+	lua_getfield(l, 1, "_meta");
+
+	if (!lua_istable(l, -1)) {
+		return error_meta_set(l);
+	}
+
+	lua_setmetatable(l, 3);
+
+	return 1;
 }
 
 int luaopen_odielak(lua_State *l)

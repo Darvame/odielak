@@ -8,6 +8,7 @@ local sanityt = {
 	['\''] = '&#x27;',
 	['/'] = '&#x2F;',
 	['A'] = '', -- option (replace A with nothing)
+	[256] = 'bad key',
 }
 
 local str = 'abc234;&&&12<*A*>  ///12O"A\'-9 \n\tOL&';

@@ -4,8 +4,9 @@
 
 #include "stdlib.h"
 #include "string.h"
+#include "limits.h"
 
-#define LAK_DICT_SIZE 128
+#define LAK_DICT_SIZE (UCHAR_MAX + 1)
 #define LAK_BUF_STACK_SIZE 2048
 
 static int replace_ut_tostring(lua_State *l, int obj)
@@ -88,8 +89,11 @@ static int replace(lua_State *l)
 	size_t oversize = 0;
 
 	for (i = 0; i < len; ++i) {
-		if (str[i] < LAK_DICT_SIZE && dict[str[i]]) {
+		if (dict[str[i]]) {
 			if (!str_inited[str[i]]) {
+
+				str_inited[str[i]] = 1;
+
 				lua_rawgeti(l, 1, str[i]);
 
 				str_rep[str[i]] = lua_tolstring(l, -1, &str_rep_len[str[i]]);
@@ -127,7 +131,7 @@ static int replace(lua_State *l)
 	char *push = new;
 
 	for (i = 0; i < len; ++i) {
-		if (str[i] < LAK_DICT_SIZE && dict[str[i]]) {
+		if (dict[str[i]]) {
 			memcpy(new, str_rep[str[i]], str_rep_len[str[i]] * sizeof(char));
 			new+= str_rep_len[str[i]];
 		} else {
@@ -167,7 +171,7 @@ static int make_new(lua_State *l)
 			if (lua_isnumber(l, -2)) {
 				keyi = lua_tonumber(l, -2);
 
-				if (keyi > LAK_DICT_SIZE || keyi < 0) {
+				if (keyi >= LAK_DICT_SIZE || keyi < 0) {
 					lua_pop(l, 1);
 					continue;
 				}
@@ -175,7 +179,7 @@ static int make_new(lua_State *l)
 			} else {
 				key = (const unsigned char *) lua_tolstring(l, -2, &lnk);
 
-				if (lnk != 1 || key[0] > LAK_DICT_SIZE) {
+				if (lnk != 1) {
 					lua_pop(l, 1);
 					continue;
 				}
@@ -217,10 +221,13 @@ static int make_new(lua_State *l)
 
 int luaopen_odielak(lua_State *l)
 {
-	lua_createtable(l, 0, 2);
+	lua_createtable(l, 0, 3);
 
 	lua_pushcfunction(l, make_new);
 	lua_setfield(l, -2, "New");
+
+	lua_pushnumber(l, 100);
+	lua_setfield(l, -2, "_VERSION");
 
 	lua_createtable(l, 0, 1);
 	lua_pushcfunction(l, replace);

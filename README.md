@@ -1,6 +1,6 @@
 # ODIELAK
 
-A small lua lib, that performs char (ASCII char from 0 to 127) to value replacements, like <b>string.gsub</b>, but more faster
+A small lua lib, that performs char (1 byte char from 0 to 255) to value replacements, like <b>string.gsub</b>, but <b>more</b> faster
 
 ```lua
 	-- with lak
@@ -64,8 +64,8 @@ export LUAPKG=lua5.2 #or any ('luajit', 'lua5.1', 'lua5.3')
 ```bash
 # this values are defaults (from luajit), do not set if have the same
 export PREFIX=/usr/local #prefix
-export LUALIBDIR=$PREFIX/lib/lua/5.1 #path to lua libs, used only for '$ make install'
-export LUAINC=-I$PREFIX/include/luajit-2.0 #path to lua headers
+export LUA_LIBDIR=$PREFIX/lib/lua/5.1 #path to lua libs, used only for '$ make install'
+export LUA_INCDIR=-I$PREFIX/include/luajit-2.0 #path to lua headers
 export LUA=$PREFIX/bin/luajit #lua executable, used only for '$ make test'
 ```
 - <b>with clang</b>
@@ -76,5 +76,5 @@ export CC=clang #if build on osx
 <h3>Building & Installing:</h3>
 
 ```bash
-make && make install
+make install
 ```

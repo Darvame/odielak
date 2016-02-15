@@ -4,17 +4,17 @@ TESTFILE=test.lua
 
 ifdef LUAPKG
 	PREFIX=$(shell pkg-config --variable=prefix $(LUAPKG))
-	LUALIBDIR=$(shell pkg-config --variable=INSTALL_CMOD $(LUAPKG))
-	LUAINC=$(shell pkg-config --cflags $(LUAPKG))
+	LUA_LIBDIR=$(shell pkg-config --variable=INSTALL_CMOD $(LUAPKG))
+	LUA_INCDIR=$(shell pkg-config --cflags $(LUAPKG))
 	LUA=$(LUAPKG)
 else
 	PREFIX?=/usr/local
-	LUALIBDIR?=$(PREFIX)/lib/lua/5.1
-	LUAINC?=-I$(PREFIX)/include/luajit-2.0
+	LUA_LIBDIR?=$(PREFIX)/lib/lua/5.1
+	LUA_INCDIR?=-I$(PREFIX)/include/luajit-2.0
 	LUA?=$(PREFIX)/bin/luajit
 endif
 
-CCOPT=-O3 -Wall -fPIC $(CFLAGS) $(LUAINC)
+CCOPT=-O3 -Wall -fPIC $(CFLAGS) $(LUA_INCDIR)
 LDOPT=-shared $(LDFLAGS)
 OBJ=$(SRC:.c=.o)
 CHMOD=755
@@ -23,7 +23,9 @@ ifeq ($(CC), clang)
 	LDOPT+= -undefined dynamic_lookup
 endif
 
-all: $(SRC) $(TARGET)
+all: build
+
+build: $(TARGET)
 
 $(TARGET): $(OBJ)
 	$(CC) $(LDOPT) $(OBJ) -o $@
@@ -35,11 +37,11 @@ clean:
 	rm -f $(TARGET) $(OBJ)
 
 install: $(TARGET)
-	mkdir -p $(LUALIBDIR)
-	cp $(TARGET) $(LUALIBDIR)/$(TARGET)
-	chmod $(CHMOD) $(LUALIBDIR)/$(TARGET)
+	mkdir -p $(LUA_LIBDIR)
+	cp $(TARGET) $(LUA_LIBDIR)/$(TARGET)
+	chmod $(CHMOD) $(LUA_LIBDIR)/$(TARGET)
 
 test: $(TARGET)
 	$(LUA) $(TESTFILE)
 
-.PHONY: all clean install test
+.PHONY: all build clean install test

@@ -1,13 +1,14 @@
 local lak = require "odielak";
 
 local escape = lak:New({ -- compile from the given table
-	['&'] = '&amp;',	-- each key (ascii char < 128) will be replaced with the corresponding value
+	['&'] = '&amp;',	-- each key (1 byte / an ascii char < 256) will be replaced with the corresponding value
 	['<'] = '&lt;',
 	['>'] = '&gt;',
 	['"'] = '&qout;',
 	['\''] = '&#x27;',
 	['/'] = '&#x2F;',
 	['12'] = 'ignored value',
+	[512] = 'also ignored',
 	[9] = '', -- this will remove tabs (string.byte('\t') == 9)
 });
 

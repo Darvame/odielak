@@ -16,6 +16,8 @@ static int replace_ut_tostring(lua_State *l, int obj)
 			lua_replace(l, obj - 1);
 			return 1;
 		}
+
+		lua_pop(l, 1);
 	}
 
 	return 0;
@@ -29,7 +31,7 @@ static int nil_value(lua_State *l)
 
 static int error_no_dict(lua_State *l)
 {
-	luaL_typerror(l, 1, "table (odielak's dictionary)");
+	luaL_typerror(l, 1, "table (with a proper odielak dictionary [-1])");
 	return 0;
 }
 
@@ -47,7 +49,7 @@ static int error_bad_malloc(lua_State *l)
 
 static int error_no_str_in_dict(lua_State *l, const unsigned char c)
 {
-	luaL_error(l, "odielak's dictionary is malformed! Missing value for %u!", c);
+	luaL_error(l, "the odielak dictionary [-1] is malformed: missing value for %u!", c);
 	return 0;
 }
 
@@ -63,10 +65,16 @@ static int replace(lua_State *l)
 
 	switch (lua_type(l, 2)) {
 		case LUA_TTABLE:
-		case LUA_TUSERDATA: if (!replace_ut_tostring(l, -1)) return nil_value(l);
+		case LUA_TUSERDATA:
+
+			if (!replace_ut_tostring(l, -1))
+				return nil_value(l);
+
 		case LUA_TSTRING:
 		case LUA_TNUMBER: break;
-		default: return nil_value(l);
+		default:
+
+			return nil_value(l);
 	}
 
 	lua_rawgeti(l, 1, -1);
@@ -76,8 +84,7 @@ static int replace(lua_State *l)
 	const unsigned char *str = (const unsigned char *) lua_tolstring(l, 2, &len);
 
 	if (!dict) {
-		lua_pop(l, 1); // remove last value (userdata-dict)
-		return 1;
+		return error_no_dict(l);
 	}
 
 	char str_inited[LAK_DICT_SIZE] = {};
@@ -155,7 +162,6 @@ static int make_new(lua_State *l)
 	}
 
 	char dict[LAK_DICT_SIZE] = {};
-	char has_any_value = 0;
 
 	const unsigned char *key;
 	long long int keyi;
@@ -187,22 +193,36 @@ static int make_new(lua_State *l)
 				keyi = key[0];
 			}
 
-			if (!lua_tostring(l, -1)) {
+			switch (lua_type(l, -1)) {
+				case LUA_TTABLE:
+				case LUA_TUSERDATA:
+
+					if (!replace_ut_tostring(l, -1)) {
+						lua_pop(l, 1);
+						continue;
+					}
+
+				case LUA_TSTRING:
+				case LUA_TNUMBER: break;
+				default:
+
+					lua_pop(l, 1);
+					continue;
+			}
+
+			if (!lua_tostring(l, -1)) { // force convert to string
 				lua_pop(l, 1);
 				continue;
 			}
 
 			lua_rawseti(l, 3, keyi);
-			has_any_value = 1;
 			dict[keyi] = 1;
 		}
 	}
 
-	if (has_any_value) {
-		unsigned char *udict = lua_newuserdata(l, sizeof(dict));
-		memcpy(udict, dict, sizeof(dict));
-		lua_rawseti(l, 3, -1);
-	}
+	unsigned char *udict = lua_newuserdata(l, sizeof(dict));
+	memcpy(udict, dict, sizeof(dict));
+	lua_rawseti(l, 3, -1);
 
 	if (!lua_istable(l, 1)) {
 		return error_meta_set(l);

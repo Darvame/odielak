@@ -10,6 +10,7 @@ local escape = lak:New({ -- compile from the given table
 	['12'] = 'ignored value',
 	[512] = 'also ignored',
 	[9] = '', -- this will remove tabs (string.byte('\t') == 9)
+	['&'] = setmetatable({'&amp;'}, { __tostring = function(self) return self[1] end}), -- lak:New() will call this __tostring metaattr
 });
 
 -- 'escape' is a table, wich has __call metaattr by default from the 'lak._meta' metatable

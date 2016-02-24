@@ -149,7 +149,7 @@ static int replace(lua_State *l)
 
 	for (i = 0; i < len; ++i) {
 		if (dict[str[i]]) {
-			if (str_rep_len[str[i]]) {
+			if (str_rep_len[str[i]] > 1) {
 				memcpy(new, str_rep[str[i]], str_rep_len[str[i]] * sizeof(char));
 				new+= str_rep_len[str[i]];
 			} else if (str_rep_len[str[i]]) {

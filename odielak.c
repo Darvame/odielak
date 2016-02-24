@@ -90,7 +90,7 @@ static int replace(lua_State *l)
 		return error_no_dict(l);
 	}
 
-	char str_inited[LAK_DICT_SIZE] = {};
+	unsigned char str_inited[LAK_DICT_SIZE] = {};
 	const char *str_rep[LAK_DICT_SIZE];
 	size_t str_rep_len[LAK_DICT_SIZE];
 
@@ -149,8 +149,12 @@ static int replace(lua_State *l)
 
 	for (i = 0; i < len; ++i) {
 		if (dict[str[i]]) {
-			memcpy(new, str_rep[str[i]], str_rep_len[str[i]] * sizeof(char));
-			new+= str_rep_len[str[i]];
+			if (str_rep_len[str[i]]) {
+				memcpy(new, str_rep[str[i]], str_rep_len[str[i]] * sizeof(char));
+				new+= str_rep_len[str[i]];
+			} else if (str_rep_len[str[i]]) {
+				*(new++) = *str_rep[str[i]];
+			}
 		} else {
 			*(new++) = str[i];
 		}

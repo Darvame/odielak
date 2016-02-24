@@ -2,7 +2,7 @@ local lak = require "odielak";
 
 local escape = lak:New({ -- compile from the given table
 	['&'] = '&amp;',	-- each key (1 byte / an ascii char < 256) will be replaced with the corresponding value
-	['<'] = '&lt;',
+	['<'] = function(self, str, byte) return '&lt;'; end, -- this function will be called only once per FIRST match during the replacement procedure
 	['>'] = '&gt;',
 	['"'] = '&qout;',
 	['\''] = '&#x27;',

@@ -9,6 +9,9 @@
 #define LAK_DICT_SIZE (UCHAR_MAX + 1)
 #define LAK_BUF_STACK_SIZE 2048
 
+#define LAK_DSTRING 0x1
+#define LAK_DFUNCTION 0x2
+
 static int replace_ut_tostring(lua_State *l, int obj)
 {
 	if (luaL_callmeta(l, obj, "__tostring")) {
@@ -103,6 +106,13 @@ static int replace(lua_State *l)
 
 				lua_rawgeti(l, 1, str[i]);
 
+				if (dict[str[i]] == LAK_DFUNCTION) {
+					lua_pushvalue(l, 1);
+					lua_pushvalue(l, 2);
+					lua_pushnumber(l, str[i]);
+					lua_call(l, 3, 1);
+				}
+
 				str_rep[str[i]] = lua_tolstring(l, -1, &str_rep_len[str[i]]);
 
 				if (!str_rep[str[i]]) {
@@ -196,27 +206,31 @@ static int make_new(lua_State *l)
 			switch (lua_type(l, -1)) {
 				case LUA_TTABLE:
 				case LUA_TUSERDATA:
-
 					if (!replace_ut_tostring(l, -1)) {
 						lua_pop(l, 1);
 						continue;
 					}
 
 				case LUA_TSTRING:
-				case LUA_TNUMBER: break;
-				default:
+				case LUA_TNUMBER:
+					if (!lua_tostring(l, -1)) { // force convert to string
+						lua_pop(l, 1);
+						continue;
+					}
 
+					dict[keyi] = LAK_DSTRING;
+					break;
+
+				case LUA_TFUNCTION:
+					dict[keyi] = LAK_DFUNCTION;
+					break;
+
+				default:
 					lua_pop(l, 1);
 					continue;
 			}
 
-			if (!lua_tostring(l, -1)) { // force convert to string
-				lua_pop(l, 1);
-				continue;
-			}
-
 			lua_rawseti(l, 3, keyi);
-			dict[keyi] = 1;
 		}
 	}
 
@@ -246,7 +260,7 @@ int luaopen_odielak(lua_State *l)
 	lua_pushcfunction(l, make_new);
 	lua_setfield(l, -2, "New");
 
-	lua_pushnumber(l, 100);
+	lua_pushnumber(l, 101);
 	lua_setfield(l, -2, "_VERSION");
 
 	lua_createtable(l, 0, 1);

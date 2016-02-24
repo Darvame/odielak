@@ -11,6 +11,7 @@ local sanityt = {
 	['H'] = {}, -- ignore
 	['U'] = setmetatable({}, {__tostring = function() end}), -- ignore
 	['B'] = setmetatable({"CC"}, {__tostring = function(self) return self[1]; end}),
+	['F'] = function(self, str, key) print(self, str, key); return '_F_'; end,
 	[256] = 'bad key',
 }
 
@@ -36,7 +37,7 @@ if (lstr ~= gstr or mstr ~= gstr) then
 	error("NOT MATCHED!");
 end
 
-assert(sanity_it("---BABB---") == "---CCCCCC---");
+assert(sanity_it("---BFABB---") == "---CC_F_CCCC---");
 assert(sanity_it("  ") == "  ");
 assert(sanity_it(1) == "1");
 assert(sanity_it(nil) == nil);

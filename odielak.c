@@ -207,7 +207,8 @@ static int make_new(lua_State *l)
 
 	const unsigned char *key;
 	long long int keyi;
-	int max_value = 0;
+
+	size_t max_value = 0;
 	size_t lnk;
 
 	if (lua_istable(l, 2)) {
@@ -264,7 +265,7 @@ static int make_new(lua_State *l)
 			lua_rawseti(l, 3, keyi);
 
 			if (max_value <= keyi) {
-				max_value = (int) (keyi + 1);
+				max_value = (size_t) (keyi + 1);
 			}
 		}
 	}

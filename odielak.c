@@ -66,11 +66,20 @@ static int replace(lua_State *l)
 		return error_no_dict(l);
 	}
 
+	lua_rawgeti(l, 1, -1);
+
+	size_t dlen;
+	const char unsigned *dict = (const unsigned char *) lua_tolstring(l, -1, &dlen);
+
+	if (!dict) {
+		return error_no_dict(l);
+	}
+
 	switch (lua_type(l, 2)) {
 		case LUA_TTABLE:
 		case LUA_TUSERDATA:
 
-			if (!replace_ut_tostring(l, -1))
+			if (!replace_ut_tostring(l, -2))
 				return nil_value(l);
 
 		case LUA_TSTRING:
@@ -80,14 +89,12 @@ static int replace(lua_State *l)
 			return nil_value(l);
 	}
 
-	lua_rawgeti(l, 1, -1);
-	const char *dict = (const char *) lua_touserdata(l, 3);
-
 	size_t len;
 	const unsigned char *str = (const unsigned char *) lua_tolstring(l, 2, &len);
 
-	if (!dict) {
-		return error_no_dict(l);
+	if (!dlen) {
+		lua_pop(l, 1); // remove last value (dict)
+		return 1;
 	}
 
 	unsigned char str_inited[LAK_DICT_SIZE] = {};
@@ -99,7 +106,7 @@ static int replace(lua_State *l)
 	size_t oversize = 0;
 
 	for (i = 0; i < len; ++i) {
-		if (dict[str[i]]) {
+		if (str[i] < dlen && dict[str[i]]) {
 			if (!str_inited[str[i]]) {
 
 				str_inited[str[i]] = 1;
@@ -126,7 +133,7 @@ static int replace(lua_State *l)
 	}
 
 	if (!matched) {
-		lua_pop(l, 1); // remove last value (userdata-dict)
+		lua_pop(l, 1); // remove last value (dict)
 		return 1;
 	}
 
@@ -148,7 +155,7 @@ static int replace(lua_State *l)
 	char *push = new;
 
 	for (i = 0; i < len; ++i) {
-		if (dict[str[i]]) {
+		if (str[i] < dlen && dict[str[i]]) {
 			if (str_rep_len[str[i]] > 1) {
 				memcpy(new, str_rep[str[i]], str_rep_len[str[i]] * sizeof(char));
 				new+= str_rep_len[str[i]];
@@ -175,13 +182,26 @@ static int make_new(lua_State *l)
 		lua_pop(l, lua_gettop(l) - 2);
 	}
 
+	lua_newtable(l);
+
+	if (!lua_istable(l, 1)) {
+		return error_meta_set(l);
+	}
+
+	lua_getfield(l, 1, "_meta");
+
+	if (!lua_istable(l, -1)) {
+		return error_meta_set(l);
+	}
+
+	lua_setmetatable(l, 3);
+
 	char dict[LAK_DICT_SIZE] = {};
 
 	const unsigned char *key;
 	long long int keyi;
+	int max_value = 0;
 	size_t lnk;
-
-	lua_newtable(l);
 
 	if (lua_istable(l, 2)) {
 		lua_pushnil(l);
@@ -235,24 +255,15 @@ static int make_new(lua_State *l)
 			}
 
 			lua_rawseti(l, 3, keyi);
+
+			if (max_value <= keyi) {
+				max_value = (int) (keyi + 1);
+			}
 		}
 	}
 
-	unsigned char *udict = lua_newuserdata(l, sizeof(dict));
-	memcpy(udict, dict, sizeof(dict));
+	lua_pushlstring(l, dict, max_value);
 	lua_rawseti(l, 3, -1);
-
-	if (!lua_istable(l, 1)) {
-		return error_meta_set(l);
-	}
-
-	lua_getfield(l, 1, "_meta");
-
-	if (!lua_istable(l, -1)) {
-		return error_meta_set(l);
-	}
-
-	lua_setmetatable(l, 3);
 
 	return 1;
 }

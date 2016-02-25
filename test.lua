@@ -39,9 +39,10 @@ if (lstr ~= gstr or mstr ~= gstr) then
 end
 
 assert(sanity_it(("1234" .. string.char(255):rep(3))) == "1234lastlastlast");
-assert(sanity_it("---BFABB---") == "---CC_F_CCCC---");
+assert(sanity_it("---BFABB---", 1, nil, false) == "---CC_F_CCCC---");
 assert(sanity_it("  ") == "  ");
-assert(sanity_it(1) == "1");
+assert(sanity_it("  ", 10) == "  ");
+assert(sanity_it(1, 2) == "1");
 assert(sanity_it(nil) == nil);
 assert(sanity_it(true) == nil);
 assert(lak:New({})("012345") == "012345");

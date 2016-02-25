@@ -97,19 +97,19 @@ static int replace(lua_State *l)
 		return 1;
 	}
 
-	unsigned char dict[LAK_DICT_SIZE];
+	const unsigned char *str_rep[LAK_DICT_SIZE];
 	unsigned char str_inited[LAK_DICT_SIZE] = {};
-	const char *str_rep[LAK_DICT_SIZE];
-	size_t str_rep_len[LAK_DICT_SIZE];
+	unsigned char dict[LAK_DICT_SIZE];
 
 	size_t i;
 	size_t matched = 0;
 	size_t oversize = 0;
+	size_t str_rep_len[LAK_DICT_SIZE];
 
-	memcpy(dict, udict, dlen * sizeof(char));
+	memcpy(dict, udict, dlen * sizeof(unsigned char));
 
 	if (dlen < LAK_DICT_SIZE) {
-		memset(&dict[dlen], 0, (LAK_DICT_SIZE - dlen) * sizeof(char));
+		memset(&dict[dlen], 0, (LAK_DICT_SIZE - dlen) * sizeof(unsigned char));
 	}
 
 	for (i = 0; i < len; ++i) {
@@ -127,7 +127,7 @@ static int replace(lua_State *l)
 					lua_call(l, 3, 1);
 				}
 
-				str_rep[str[i]] = lua_tolstring(l, -1, &str_rep_len[str[i]]);
+				str_rep[str[i]] = (const unsigned char *) lua_tolstring(l, -1, &str_rep_len[str[i]]);
 
 				if (!str_rep[str[i]]) {
 					return error_no_str_in_dict(l, str[i]);
@@ -146,11 +146,11 @@ static int replace(lua_State *l)
 
 	oversize+= len - matched;
 
-	char sbuf[LAK_BUF_STACK_SIZE];
-	char *new;
+	unsigned char sbuf[LAK_BUF_STACK_SIZE];
+	unsigned char *new;
 
 	if (oversize > LAK_BUF_STACK_SIZE) {
-		new = (char *) malloc(oversize);
+		new = (unsigned char *) malloc(oversize);
 
 		if (!new) {
 			return error_bad_malloc(l);
@@ -159,12 +159,12 @@ static int replace(lua_State *l)
 		new = sbuf;
 	}
 
-	char *push = new;
+	unsigned char *push = new;
 
 	for (i = 0; i < len; ++i) {
 		if (dict[str[i]]) {
 			if (str_rep_len[str[i]] > 1) {
-				memcpy(new, str_rep[str[i]], str_rep_len[str[i]] * sizeof(char));
+				memcpy(new, str_rep[str[i]], str_rep_len[str[i]] * sizeof(unsigned char));
 				new+= str_rep_len[str[i]];
 			} else if (str_rep_len[str[i]]) {
 				*(new++) = *str_rep[str[i]];
@@ -174,7 +174,7 @@ static int replace(lua_State *l)
 		}
 	}
 
-	lua_pushlstring(l, push, oversize);
+	lua_pushlstring(l, (const char *) push, oversize);
 
 	if (oversize > LAK_BUF_STACK_SIZE) {
 		free(push);
@@ -203,7 +203,7 @@ static int make_new(lua_State *l)
 
 	lua_setmetatable(l, 3);
 
-	char dict[LAK_DICT_SIZE] = {};
+	unsigned char dict[LAK_DICT_SIZE] = {};
 
 	const unsigned char *key;
 	long long int keyi;
@@ -270,7 +270,7 @@ static int make_new(lua_State *l)
 		}
 	}
 
-	lua_pushlstring(l, dict, max_value);
+	lua_pushlstring(l, (const char *) dict, max_value);
 	lua_rawseti(l, 3, -1);
 
 	return 1;

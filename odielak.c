@@ -69,9 +69,9 @@ static int replace(lua_State *l)
 	lua_rawgeti(l, 1, -1);
 
 	size_t dlen;
-	const char unsigned *dict = (const unsigned char *) lua_tolstring(l, -1, &dlen);
+	const unsigned char *udict = (const unsigned char *) lua_tolstring(l, -1, &dlen);
 
-	if (!dict) {
+	if (!udict) {
 		return error_no_dict(l);
 	}
 
@@ -97,6 +97,7 @@ static int replace(lua_State *l)
 		return 1;
 	}
 
+	unsigned char dict[LAK_DICT_SIZE];
 	unsigned char str_inited[LAK_DICT_SIZE] = {};
 	const char *str_rep[LAK_DICT_SIZE];
 	size_t str_rep_len[LAK_DICT_SIZE];
@@ -105,8 +106,14 @@ static int replace(lua_State *l)
 	size_t matched = 0;
 	size_t oversize = 0;
 
+	memcpy(dict, udict, dlen * sizeof(char));
+
+	if (dlen < LAK_DICT_SIZE) {
+		memset(&dict[dlen], 0, (LAK_DICT_SIZE - dlen) * sizeof(char));
+	}
+
 	for (i = 0; i < len; ++i) {
-		if (str[i] < dlen && dict[str[i]]) {
+		if (dict[str[i]]) {
 			if (!str_inited[str[i]]) {
 
 				str_inited[str[i]] = 1;
@@ -155,7 +162,7 @@ static int replace(lua_State *l)
 	char *push = new;
 
 	for (i = 0; i < len; ++i) {
-		if (str[i] < dlen && dict[str[i]]) {
+		if (dict[str[i]]) {
 			if (str_rep_len[str[i]] > 1) {
 				memcpy(new, str_rep[str[i]], str_rep_len[str[i]] * sizeof(char));
 				new+= str_rep_len[str[i]];

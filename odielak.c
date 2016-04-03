@@ -98,7 +98,7 @@ static int replace(lua_State *l)
 		return nil_value(l);
 	}
 
-	if (!dlen) {
+	if (!len || !dlen) {
 		lua_pop(l, 1); // remove last value (dict)
 		return 1;
 	}

@@ -6,7 +6,7 @@
 #include "string.h"
 #include "limits.h"
 
-#define LAK_VERISON 102
+#define LAK_VERSION 102
 
 #define LAK_DICT_SIZE (UCHAR_MAX + 1)
 #define LAK_BUF_STACK_TOTALSIZE 2048
@@ -139,7 +139,7 @@ static int replace(lua_State *l)
 					return error_no_str_in_dict(l, str[i]);
 				}
 
-				if (str_rep_len[str[i]] <= sizeof(unsigned char *)) {
+				if (str_rep_len[str[i]] <= sizeof(unsigned char *)) { // avoid future memcpy if got a short string
 					memcpy(&str_rep[str[i]], str_rep[str[i]], str_rep_len[str[i]] * sizeof(unsigned char));
 				}
 			}
@@ -247,15 +247,13 @@ static int new(lua_State *l)
 				keyi = key[0];
 			}
 
-			if (lua_type(l, -1) == LUA_TFUNCTION) {
+			if (tolstring(l, -1, NULL)) { // force convert to string
+				dict[keyi] = LAK_DSTRING;
+			} else if (lua_type(l, -1) == LUA_TFUNCTION) {
 				dict[keyi] = LAK_DFUNCTION;
 			} else {
-				if (!tolstring(l, -1, NULL)) { // force convert to string
-					lua_pop(l, 1);
-					continue;
-				}
-
-				dict[keyi] = LAK_DSTRING;
+				lua_pop(l, 1);
+				continue;
 			}
 
 			lua_rawseti(l, -3, keyi);
@@ -279,7 +277,7 @@ int luaopen_odielak(lua_State *l)
 	lua_pushcfunction(l, new);
 	lua_setfield(l, -2, "New");
 
-	lua_pushnumber(l, LAK_VERISON);
+	lua_pushnumber(l, LAK_VERSION);
 	lua_setfield(l, -2, "_VERSION");
 
 	lua_createtable(l, 0, 1);

@@ -205,8 +205,8 @@ static int replace(lua_State *l)
 
 static int new(lua_State *l)
 {
-	short argc = (short)lua_gettop(l);
-	short i;
+	int argc = (short)lua_gettop(l);
+	int i;
 
 	for (i = 1; i <= argc; ++i) {
 		luaL_checktype(l, i, LUA_TTABLE);

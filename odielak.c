@@ -94,7 +94,7 @@ static int replace(lua_State *l)
 	size_t oversize;
 	size_t str_rep_len[LAK_DICT_SIZE];
 
-	size_t alloc_size;
+	size_t alloc_size = 0;
 
 	unsigned char sbuf[LAK_BUF_STACK_TOTALSIZE];
 	unsigned char *new, *push, *alloc = NULL;

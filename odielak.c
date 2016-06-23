@@ -161,7 +161,7 @@ static int replace(lua_State *l)
 		if (oversize > LAK_BUF_STACK_SIZE) {
 			size_t total_oversize = (oversize * sizeof(unsigned char) + LAK_BUF_OVERSIZE);
 
-			if (!alloc || alloc_size < total_oversize) {
+			if (alloc_size < total_oversize) {
 				alloc_size = total_oversize;
 				alloc = (unsigned char *) (!alloc ? malloc(alloc_size) : realloc(alloc, alloc_size));
 			}
@@ -205,7 +205,7 @@ static int replace(lua_State *l)
 
 static int new(lua_State *l)
 {
-	int argc = (short)lua_gettop(l);
+	int argc = lua_gettop(l);
 	int i;
 
 	for (i = 1; i <= argc; ++i) {

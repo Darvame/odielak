@@ -9,7 +9,7 @@ local sanityt = {
 	[255] = 'last',
 	['U'] = setmetatable({}, {__tostring = function() end}), -- ignore
 	['B'] = setmetatable({"CC"}, {__tostring = function(self) return self[1]; end}),
-	['F'] = function(self, str, key) print(self, str, key); return '_F_'; end,
+	['F'] = function(self, str, key) return '_F_'; end,
 	[256] = 'bad key',
 }
 
@@ -81,3 +81,14 @@ local x,y,z,y2,x2 = l(big, big..big, big..big..big, big..big, big);
 assert(x == x2 and x2 == to, x2);
 assert(y == y2 and y2 == to..to);
 assert(z == to..to..to);
+
+local f = function(self, str, k)
+	assert(string.byte(str) == k);
+	return '00';
+end
+
+assert(lak.new({
+	['x'] = f;
+	['y'] = f;
+	['z'] = f;
+})('x', 'y', 'z') == "00");

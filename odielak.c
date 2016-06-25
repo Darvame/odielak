@@ -130,7 +130,7 @@ static int replace(lua_State *l)
 
 					if (dict[str[i]] == LAK_DFUNCTION) {
 						lua_pushvalue(l, 1);
-						lua_pushvalue(l, 2);
+						lua_pushvalue(l, ar);
 						lua_pushnumber(l, str[i]);
 						lua_call(l, 3, 1);
 					}
